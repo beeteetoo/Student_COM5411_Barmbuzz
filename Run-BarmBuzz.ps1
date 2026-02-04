@@ -87,6 +87,7 @@ $RootPath = $PSScriptRoot
 
 # Tutor-provided scripts
 $PrereqScript = Join-Path $RootPath "Scripts\Prereqs\BarmBuzz_OneShot_LCM.ps1"
+$NetworkScript = Join-Path $RootPath "Scripts\Prereqs\BarmBuzz_OneShot_Network.ps1"
 
 # Student-owned inputs (YOU edit these)
 $StudentConfigScript = Join-Path $RootPath "DSC\Configurations\StudentConfig.ps1"
@@ -194,12 +195,16 @@ try {
     if (-not (Test-Path $PrereqScript)) {
         throw "Missing tutor prereq script: Scripts\Prereqs\BarmBuzz_OneShot_LCM.ps1"
     }
+    if (-not (Test-Path $NetworkScript)) {
+        throw "Missing tutor prereq script: Scripts\Prereqs\BarmBuzz_OneShot_Network.ps1"
+    }
 
     # =========================================================================
     # PHASE 1: PREREQUISITES (TUTOR-PROVIDED)
     # =========================================================================
     Write-Host "`n[Phase 1] Prerequisites..." -ForegroundColor Yellow
     & $PrereqScript
+    & $NetworkScript
     Write-Host "[+] Phase 1 complete." -ForegroundColor Green
 
     # =========================================================================
