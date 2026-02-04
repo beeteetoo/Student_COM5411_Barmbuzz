@@ -102,6 +102,10 @@ $EvidenceRoot = Join-Path $RootPath "Evidence"
 # Fixed configuration name (YOU must define this in StudentConfig.ps1)
 $ConfigName = "StudentBaseline"
 
+# Idempotency: flag files to track if prereqs have already run
+$LcmFlagFile = Join-Path $EvidenceRoot "prereq_lcm_complete.flag"
+$NetworkFlagFile = Join-Path $EvidenceRoot "prereq_network_complete.flag"
+
 # =============================================================================
 # HELPER: create folders if missing
 # =============================================================================
@@ -203,8 +207,25 @@ try {
     # PHASE 1: PREREQUISITES (TUTOR-PROVIDED)
     # =========================================================================
     Write-Host "`n[Phase 1] Prerequisites..." -ForegroundColor Yellow
-    & $PrereqScript
-    & $NetworkScript
+    
+    # LCM Configuration (run only once)
+    if (Test-Path $LcmFlagFile) {
+        Write-Host "[*] LCM already configured (skipping)." -ForegroundColor Gray
+    } else {
+        & $PrereqScript
+        New-Item -Path $LcmFlagFile -ItemType File -Force | Out-Null
+        Write-Host "[+] LCM configured and flagged." -ForegroundColor Green
+    }
+    
+    # Network Configuration (run only once)
+    if (Test-Path $NetworkFlagFile) {
+        Write-Host "[*] Network already configured (skipping)." -ForegroundColor Gray
+    } else {
+        & $NetworkScript
+        New-Item -Path $NetworkFlagFile -ItemType File -Force | Out-Null
+        Write-Host "[+] Network configured and flagged." -ForegroundColor Green
+    }
+    
     Write-Host "[+] Phase 1 complete." -ForegroundColor Green
 
     # =========================================================================
