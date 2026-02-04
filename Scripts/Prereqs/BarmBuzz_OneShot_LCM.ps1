@@ -19,7 +19,6 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "--- [STAFF-ONLY] Configuring Persistent LCM Settings ---" -ForegroundColor Cyan
 
-[Configuration()]
 Configuration SetBarmBuzzLCM {
     Node "localhost" {
         LocalConfigurationManager {
