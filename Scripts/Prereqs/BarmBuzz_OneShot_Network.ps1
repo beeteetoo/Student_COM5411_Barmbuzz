@@ -71,4 +71,4 @@ Catch {
 }
 
 # Pause so they can see the green text
-Read-Host "`nPress Enter to exit"
+# Read-Host "`nPress Enter to exit"
