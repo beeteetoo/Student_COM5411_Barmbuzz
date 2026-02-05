@@ -15,7 +15,7 @@ You do **NOT** run a random set of commands.
 
 You run **one entry script**:
 
-**Run-BarmBuzz.ps1**
+**Run_BuildMain.ps1**
 
 That script will (eventually) do everything in this order:
 1. Environment checks (admin, paths, folder structure)
@@ -23,7 +23,7 @@ That script will (eventually) do everything in this order:
 3. Compile + apply DSC configuration (your work)
 4. Validation (tutor-provided tests)
 
-If something fails, you fix the issue and run Run-BarmBuzz.ps1 again.
+If something fails, you fix the issue and run Run_BuildMain.ps1 again.
 
 ---
 
@@ -128,10 +128,10 @@ You must run builds as Administrator.
 - Start Menu → PowerShell → Right-click → Run as Administrator
 - Then cd into your repo folder
 
-### Step C: Run the orchestrator (placeholder for now)
+### Step C: Run the orchestrator
 Run:
 
-.\Run-BarmBuzz.ps1
+.\Run_BuildMain.ps1
 
 Right now the orchestrator is a placeholder in this scaffold.
 Your tutor will provide the working orchestrator and prerequisite scripts.
@@ -143,7 +143,7 @@ Your tutor will provide the working orchestrator and prerequisite scripts.
 Each week you will:
 1. Edit AllNodes.psd1 to describe the desired environment (data)
 2. Edit StudentConfig.ps1 to implement the desired environment (configuration)
-3. Run Run-BarmBuzz.ps1 to compile/apply
+3. Run Run_BuildMain.ps1 to compile/apply
 4. Review outputs written into DSC\Outputs\ and Evidence\
 5. Commit the changes and generated outputs to Git
 

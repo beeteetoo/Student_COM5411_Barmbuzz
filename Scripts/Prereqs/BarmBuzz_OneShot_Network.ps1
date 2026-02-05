@@ -20,7 +20,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     Throw "CRITICAL: You must run this script as Administrator."
 }
 
-Write-Host "--- BarmBuzz Network & Remoting Prep ---" -ForegroundColor Cyan
+Write-Host "--- BarmBuzz Network, PSRemoting & RSAT Prep ---" -ForegroundColor Cyan
 
 # ---------------------------------------------------------------------------
 # 2. NETWORK CATEGORY (The Firewall Fix)
@@ -29,18 +29,19 @@ Write-Host "--- BarmBuzz Network & Remoting Prep ---" -ForegroundColor Cyan
 # Consequence: Windows Firewall blocks WinRM (Port 5985).
 # Fix: Force it to 'Private'.
 
-Write-Host "[*] Checking Network Connection Profile..." -ForegroundColor Yellow
-$Connection = Get-NetConnectionProfile
-
-if ($Connection.NetworkCategory -ne 'Private') {
-    Write-Host "    Current Profile: $($Connection.NetworkCategory). Changing to Private..." -ForegroundColor Gray
-    
-    # We use -Force to suppress prompts
-    Set-NetConnectionProfile -InterfaceIndex $Connection.InterfaceIndex -NetworkCategory Private
-    
-    Write-Host "    [+] Network is now Private." -ForegroundColor Green
+Write-Host "[*] Checking Network Connection Profiles (all connected NICs)..." -ForegroundColor Yellow
+$profiles = Get-NetConnectionProfile | Where-Object { $_.IPv4Connectivity -ne 'NoTraffic' -and $_.NetworkConnectivityLevel -ne 'Disconnected' }
+if (-not $profiles) {
+    Write-Host "    [-] No active connection profiles found." -ForegroundColor Yellow
 } else {
-    Write-Host "    [+] Network is already Private." -ForegroundColor Green
+    foreach ($p in $profiles) {
+        if ($p.NetworkCategory -ne 'Private') {
+            Write-Host "    Changing '$($p.Name)' (Idx $($p.InterfaceIndex)) from $($p.NetworkCategory) -> Private" -ForegroundColor Gray
+            Set-NetConnectionProfile -InterfaceIndex $p.InterfaceIndex -NetworkCategory Private -ErrorAction Stop
+        } else {
+            Write-Host "    '$($p.Name)' already Private." -ForegroundColor Green
+        }
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -70,5 +71,62 @@ Catch {
     Write-Error "    [-] WinRM Failed to respond. Check if the 'Windows Remote Management' service is running."
 }
 
-# Pause so they can see the green text
-# Read-Host "`nPress Enter to exit"
+# ---------------------------------------------------------------------------
+# 5. RSAT INSTALL (AD + GPO tooling) with OS detection via WinPS (5.1)
+# ---------------------------------------------------------------------------
+Write-Host "`n[*] Ensuring RSAT tools (AD + GPO) are installed..." -ForegroundColor Yellow
+
+function Invoke-WinPSCommand {
+    param([Parameter(Mandatory)][string]$Script)
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = 'powershell.exe'
+    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"$Script`""
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError  = $true
+    $psi.UseShellExecute        = $false
+    $psi.CreateNoWindow         = $true
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $psi
+    $null = $p.Start()
+    $out = $p.StandardOutput.ReadToEnd()
+    $err = $p.StandardError.ReadToEnd()
+    $p.WaitForExit()
+    return [pscustomobject]@{ ExitCode = $p.ExitCode; StdOut = $out; StdErr = $err }
+}
+
+$osProductType = (Get-CimInstance Win32_OperatingSystem).ProductType  # 1=Client, 2=Domain Controller, 3=Server
+if ($osProductType -eq 1) {
+    # Windows Client: use Windows Capabilities
+    $clientScript = @"
+Try {
+    Add-WindowsCapability -Online -Name RSAT.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0 -ErrorAction Stop | Out-Null
+    Add-WindowsCapability -Online -Name Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0 -ErrorAction Stop | Out-Null
+    Write-Output 'RSAT capabilities installed (client).'
+} Catch { Write-Error $_ }
+"@
+    $r = Invoke-WinPSCommand -Script $clientScript
+    if ($r.ExitCode -ne 0) {
+        Write-Warning "RSAT install (client) may have failed. StdErr: $($r.StdErr)"
+    } else {
+        Write-Host "    [+] RSAT (client) processed." -ForegroundColor Green
+    }
+}
+else {
+    # Windows Server: use Windows Features
+    $serverScript = @"
+Try {
+    Import-Module ServerManager -ErrorAction Stop
+    Install-WindowsFeature RSAT-AD-PowerShell -ErrorAction Stop | Out-Null
+    Install-WindowsFeature GPMC -ErrorAction Stop | Out-Null
+    Write-Output 'RSAT features installed (server).'
+} Catch { Write-Error $_ }
+"@
+    $r = Invoke-WinPSCommand -Script $serverScript
+    if ($r.ExitCode -ne 0) {
+        Write-Warning "RSAT install (server) may have failed. StdErr: $($r.StdErr)"
+    } else {
+        Write-Host "    [+] RSAT (server) processed." -ForegroundColor Green
+    }
+}
+
+Write-Host "[+] Network/Remoting/RSAT baseline complete." -ForegroundColor Green

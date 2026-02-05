@@ -55,3 +55,42 @@ Write-Host "[*] Applying persistent automation settings..." -ForegroundColor Gra
 Set-DscLocalConfigurationManager -Path $TempPath -Force
 
 Write-Host "[+] LCM configured. Server is now reboot-ready." -ForegroundColor Green
+
+# ---------------------------------------------------------------------------
+# MODULE BASELINE (pinned installs via PSResourceGet)
+# ---------------------------------------------------------------------------
+Write-Host "[*] Ensuring DSC modules are installed/pinned (PSResourceGet) ..." -ForegroundColor Yellow
+
+function Ensure-PSResourceGet {
+    if (-not (Get-Module -ListAvailable Microsoft.PowerShell.PSResourceGet)) {
+        throw "PSResourceGet missing. Install Microsoft.PowerShell.PSResourceGet before proceeding."
+    }
+}
+
+function Install-PinnedModule {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][version]$Version,
+        [string]$Destination = "C:\\Program Files\\WindowsPowerShell\\Modules"
+    )
+    Ensure-PSResourceGet
+    Write-Host "    -> $Name@$Version" -ForegroundColor Gray
+    Save-PSResource -Name $Name -Version $Version -Repository PSGallery -Path $Destination -TrustRepository -ErrorAction Stop | Out-Null
+}
+
+# Pinned versions per lab baseline
+$Pinned = @{
+    PSDesiredStateConfiguration = [version]'2.0.7'
+    ActiveDirectoryDsc          = [version]'6.6.0'
+    GroupPolicyDsc              = [version]'1.0.3'
+    Pester                      = [version]'5.7.1'
+}
+
+foreach ($k in $Pinned.Keys) {
+    Install-PinnedModule -Name $k -Version $Pinned[$k]
+}
+
+# Required (unpinned) extras
+Save-PSResource -Name 'ComputerManagementDsc' -Repository PSGallery -Path 'C:\\Program Files\\WindowsPowerShell\\Modules' -TrustRepository -ErrorAction SilentlyContinue | Out-Null
+
+Write-Host "[+] DSC module baseline ensured at C:\\Program Files\\WindowsPowerShell\\Modules." -ForegroundColor Green

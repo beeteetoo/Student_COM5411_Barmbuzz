@@ -82,7 +82,7 @@ $files = @(
     "Documentation\Runbook.md",
     "Documentation\DesignNotes.md",
 
-    "Run-BarmBuzz.ps1",
+    "Run_BuildMain.ps1",
 
     "Scripts\Prereqs\BarmBuzz_OneShot_LCM.ps1",
     "Scripts\Helpers\Invoke-BarmBuzzEvidencePack.ps1",
@@ -153,13 +153,13 @@ You run **one entry script**:
 
 **`Run-BarmBuzz.ps1`**
 
-That script will (eventually) do everything in this order:
+That script will do everything in this order:
 1. Environment checks (admin, paths, folder structure)
 2. Prerequisites setup (tutor-provided)
 3. Compile + apply DSC configuration (your work)
 4. Validation (tutor-provided tests)
 
-If something fails, you fix the issue and run `Run-BarmBuzz.ps1` again.
+If something fails, you fix the issue and run `Run_BuildMain.ps1` again.
 
 ---
 
