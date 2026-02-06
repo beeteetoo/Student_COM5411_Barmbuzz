@@ -9,6 +9,9 @@ Configuration StudentBaseline {
     param()
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
+    Import-DscResource -ModuleName ComputerManagementDSC
+    #Import-DscResource -ModuleName ActivedirectoryDSC
+
 
     Node $AllNodes.NodeName {
 

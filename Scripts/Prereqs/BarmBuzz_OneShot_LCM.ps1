@@ -74,6 +74,11 @@ function Install-PinnedModule {
         [string]$Destination = "C:\\Program Files\\WindowsPowerShell\\Modules"
     )
     Ensure-PSResourceGet
+    $installed = Get-Module -ListAvailable -Name $Name | Where-Object { $_.Version -eq $Version }
+    if ($installed) {
+        Write-Host "    -> $Name@$Version already present (skipping)." -ForegroundColor Green
+        return
+    }
     Write-Host "    -> $Name@$Version" -ForegroundColor Gray
     Save-PSResource -Name $Name -Version $Version -Repository PSGallery -Path $Destination -TrustRepository -ErrorAction Stop | Out-Null
 }

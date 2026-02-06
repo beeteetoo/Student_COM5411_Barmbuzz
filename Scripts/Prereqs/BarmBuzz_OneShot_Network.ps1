@@ -30,7 +30,12 @@ Write-Host "--- BarmBuzz Network, PSRemoting & RSAT Prep ---" -ForegroundColor C
 # Fix: Force it to 'Private'.
 
 Write-Host "[*] Checking Network Connection Profiles (all connected NICs)..." -ForegroundColor Yellow
-$profiles = Get-NetConnectionProfile | Where-Object { $_.IPv4Connectivity -ne 'NoTraffic' -and $_.NetworkConnectivityLevel -ne 'Disconnected' }
+$profiles = Get-NetConnectionProfile | Where-Object {
+    $_.IPv4Connectivity -ne 'NoTraffic' -and (
+        -not ($_.PSObject.Properties.Name -contains 'NetworkConnectivityLevel') -or
+        $_.NetworkConnectivityLevel -ne 'Disconnected'
+    )
+}
 if (-not $profiles) {
     Write-Host "    [-] No active connection profiles found." -ForegroundColor Yellow
 } else {
@@ -97,13 +102,13 @@ function Invoke-WinPSCommand {
 $osProductType = (Get-CimInstance Win32_OperatingSystem).ProductType  # 1=Client, 2=Domain Controller, 3=Server
 if ($osProductType -eq 1) {
     # Windows Client: use Windows Capabilities
-    $clientScript = @"
+    $clientScript = @'
 Try {
     Add-WindowsCapability -Online -Name RSAT.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0 -ErrorAction Stop | Out-Null
     Add-WindowsCapability -Online -Name Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0 -ErrorAction Stop | Out-Null
-    Write-Output 'RSAT capabilities installed (client).'
+    Write-Output ''RSAT capabilities installed (client).''
 } Catch { Write-Error $_ }
-"@
+'@
     $r = Invoke-WinPSCommand -Script $clientScript
     if ($r.ExitCode -ne 0) {
         Write-Warning "RSAT install (client) may have failed. StdErr: $($r.StdErr)"
@@ -113,14 +118,14 @@ Try {
 }
 else {
     # Windows Server: use Windows Features
-    $serverScript = @"
+    $serverScript = @'
 Try {
     Import-Module ServerManager -ErrorAction Stop
     Install-WindowsFeature RSAT-AD-PowerShell -ErrorAction Stop | Out-Null
     Install-WindowsFeature GPMC -ErrorAction Stop | Out-Null
-    Write-Output 'RSAT features installed (server).'
+    Write-Output ''RSAT features installed (server).''
 } Catch { Write-Error $_ }
-"@
+'@
     $r = Invoke-WinPSCommand -Script $serverScript
     if ($r.ExitCode -ne 0) {
         Write-Warning "RSAT install (server) may have failed. StdErr: $($r.StdErr)"
