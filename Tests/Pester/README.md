@@ -206,6 +206,17 @@ Describe "My Advanced Test Suite" {
     
     # BeforeAll runs ONCE before all tests (setup)
     BeforeAll {
+        # IMPORTANT: The test harness automatically injects these for you!
+        param(
+            $RepoRoot,      # Path to repo root (where Run_BuildMain.ps1 lives)
+            $EvidenceDir    # Path to Evidence\Pester folder
+        )
+        
+        # Store them in script scope so all tests can use them
+        $script:repoRoot = $RepoRoot
+        $script:evidenceDir = $EvidenceDir
+        
+        # Your test-specific variables
         $script:TestPath = "C:\TEST"
         $script:ExpectedFile = Join-Path $TestPath "test.txt"
     }
@@ -219,6 +230,11 @@ Describe "My Advanced Test Suite" {
         
         It "Test file should exist" {
             Test-Path $script:ExpectedFile | Should -BeTrue
+        }
+        
+        It "Repo root was injected correctly" {
+            $script:repoRoot | Should -Not -BeNullOrEmpty
+            Test-Path (Join-Path $script:repoRoot "Run_BuildMain.ps1") | Should -BeTrue
         }
     }
     
@@ -236,6 +252,12 @@ Describe "My Advanced Test Suite" {
     }
 }
 ```
+
+**KEY POINTS:**
+- **`param($RepoRoot, $EvidenceDir)`** in `BeforeAll` receives injected values from the harness
+- **You don't need to calculate repo paths yourself** - they're provided automatically
+- **Legacy support:** If you run the test file directly (not via harness), you'll need fallback logic
+- **`$script:` scope** makes variables available to all tests in the file
 
 ### 6.3 Common Pester Assertions
 ```powershell

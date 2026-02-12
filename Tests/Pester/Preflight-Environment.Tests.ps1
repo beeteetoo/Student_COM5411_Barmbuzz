@@ -40,6 +40,14 @@ Describe "COM5411 IaC Environment Preflight (Dual-Shell)" {
     # Variables here are used in test names and foreach loops that generate tests
     # These need to be available when Pester is building the test structure
     BeforeDiscovery {
+        # STUDENT NOTE: The test harness (Invoke-Validation.ps1) automatically injects
+        # $RepoRoot and $EvidenceDir via the param() block below!
+        # You can access them here during discovery, and again in BeforeAll for test execution
+        param(
+            $RepoRoot,      # Injected by harness: path to repo root
+            $EvidenceDir    # Injected by harness: path to Evidence\Pester
+        )
+        
         # Variables needed during discovery phase (for foreach loops, test names)
         $ExpectedModuleRoot = "C:\Program Files\WindowsPowerShell\Modules"
 
@@ -66,12 +74,23 @@ Describe "COM5411 IaC Environment Preflight (Dual-Shell)" {
     # Variables here need $script: scope to be accessible in test bodies
     # Functions defined here are available to all tests
     BeforeAll {
+        # STUDENT NOTE: Receive injected data from the test harness
+        # The harness (Invoke-Validation.ps1) passes RepoRoot and EvidenceDir automatically
+        param(
+            $RepoRoot,      # Injected: repo root path
+            $EvidenceDir    # Injected: Evidence\Pester path
+        )
+        
+        # Store in script scope so all tests can access them
+        $script:repoRoot = $RepoRoot
+        $script:evidenceDir = $EvidenceDir
 
-        function Get-RepoRoot {
+        # LEGACY FALLBACK: If not injected (running test file directly), calculate it
+        if (-not $script:repoRoot) {
             # Pester file is: Tests\Pester\Preflight-Environment.Tests.ps1
             # Repo root is:   ..\..\ from this file
             $here = Split-Path -Parent $PSCommandPath
-            return (Resolve-Path (Join-Path $here "..\..")).Path
+            $script:repoRoot = (Resolve-Path (Join-Path $here "..\..")).Path
         }
 
         function Test-IsAdmin {
@@ -175,7 +194,7 @@ NEXT STEP (do this first, then re-run Preflight):
             throw $msg
         }
 
-        $script:RepoRoot = Get-RepoRoot
+        # $script:repoRoot is already set from injected parameter above
         $script:IsAdmin  = Test-IsAdmin
 
         # PESTER v5: Re-declare the same variables from BeforeDiscovery with $script: scope
