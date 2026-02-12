@@ -65,6 +65,8 @@ Use the test harness to run all tests in one go:
 ```powershell
 .\Tests\Pester\Invoke-Validation.ps1
 ```
+[!CAUTION]
+Do not run Invoke-Pester directly. Always use the harness.
 
 **What happens:**
 - Discovers all `*.Tests.ps1` files in `Tests\Pester\` automatically
